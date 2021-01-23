@@ -26,27 +26,28 @@ pub struct Statement {
     right: Expression,
 }
 
-fn get_first(s: &String) -> Option<char> {
-    s.trim().chars().next()
-}
-
-fn get_rest(s: &String) -> Option<String> {
-    match s.len() {
-        0 => None,
-        _ => Some(
-            s.trim()
-                .chars()
-                .skip(1)
-                .collect::<String>()
-                .trim()
-                .chars()
-                .collect(),
-        ),
-    }
-}
-
 fn pull(s: &String) -> (Option<char>, Option<String>) {
-    (get_first(s), get_rest(s))
+    let s = s.trim().chars().collect::<String>();
+    (
+        s.chars().next(),
+        match s.len() {
+            0 | 1 => None,
+            _ => Some(get_rest(&s, 1)),
+        },
+    )
+}
+
+fn get_at(s: &String, index: usize) -> Option<char> {
+    s.chars().skip(index).next()
+}
+
+fn get_rest(s: &String, index: usize) -> String {
+    s.chars()
+        .skip(index)
+        .collect::<String>()
+        .trim()
+        .chars()
+        .collect()
 }
 
 pub fn parse_statement(math: String) -> Statement {
@@ -105,17 +106,14 @@ pub fn parse_expression(math: String) -> (Expression, String) {
     parse_binary(
         math,
         &OpTable {
-            operations: [('+', Operation::Addition), ('-', Operation::Subtraction)]
-                .iter()
-                .cloned()
-                .collect(),
+            operations: as_hash_map(&[('+', Operation::Addition), ('-', Operation::Subtraction)]),
             next_level: Some(box OpTable {
-                operations: [('*', Operation::Multiplication), ('/', Operation::Division)]
-                    .iter()
-                    .cloned()
-                    .collect(),
+                operations: as_hash_map(&[
+                    ('*', Operation::Multiplication),
+                    ('/', Operation::Division),
+                ]),
                 next_level: Some(box OpTable {
-                    operations: [('^', Operation::Exponentiation)].iter().cloned().collect(),
+                    operations: as_hash_map(&[('^', Operation::Exponentiation)]),
                     next_level: None,
                 }),
             }),
@@ -123,24 +121,26 @@ pub fn parse_expression(math: String) -> (Expression, String) {
     )
 }
 
+pub fn as_hash_map<T: Clone + Eq + std::hash::Hash, R: Clone>(array: &[(T, R)]) -> HashMap<T, R> {
+    array.iter().cloned().collect()
+}
+
 pub fn parse_unary(math: String) -> (Expression, String) {
+    let ops = &OpTable {
+        operations: as_hash_map(&[('+', Operation::Addition), ('-', Operation::Subtraction)]),
+        next_level: None,
+    };
+
     match pull(&math) {
-        (Some(first), Some(rest)) if first == '+' || first == '-' => {
+        (Some(first), Some(rest)) if ops.operations.contains_key(&first) => {
             let (operation, math) = parse_unary(rest);
             (
-                Expression::Unary(
-                    match first {
-                        '+' => Operation::Addition,
-                        '-' => Operation::Subtraction,
-                        _ => panic!("Unexpected operator you broke something"),
-                    },
-                    box operation,
-                ),
+                Expression::Unary(ops.operations[&first].clone(), box operation),
                 math,
             )
         }
-        (Some(_), Some(_)) => parse_low(math),
-        _ => panic!("Error, expected rest of expression got end of string"),
+        (Some(_), _) => parse_low(math),
+        _ => panic!("Expected rest of expression, got end of string"),
     }
 }
 
@@ -171,19 +171,14 @@ pub fn parse_num(math: String) -> (Expression, String) {
     let mut value = 0;
     let mut index = 0;
 
-    while index < math.len() && math.chars().nth(index).unwrap().is_digit(10) {
+    while index < math.len() && get_at(&math, index).unwrap().is_digit(10) {
         value *= 10;
-        value += math.chars().nth(index).unwrap() as u64 - '0' as u64;
+        value += get_at(&math, index).unwrap() as u64 - '0' as u64;
         index += 1;
     }
 
     (
         Expression::Number(Number::Constant(value)),
-        math.chars()
-            .skip(index)
-            .collect::<String>()
-            .trim()
-            .chars()
-            .collect(),
+        get_rest(&math, index),
     )
 }
