@@ -1,7 +1,7 @@
 #[derive(Debug)]
 pub enum Number {
     Constant(u64),
-    Variable(String),
+    Variable(char),
 }
 
 #[derive(Debug, Clone)]
@@ -24,6 +24,13 @@ pub enum Expression {
 pub struct Statement {
     left: Expression,
     right: Expression,
+}
+
+fn opt_to_string(string: Option<String>) -> String {
+    match string {
+        Some(string) => string,
+        None => "".to_string(),
+    }
 }
 
 fn pull(s: &String) -> (Option<char>, Option<String>) {
@@ -140,30 +147,41 @@ pub fn parse_unary(math: String) -> (Expression, String) {
             )
         }
         (Some(_), _) => parse_low(math),
-        _ => panic!("Expected rest of expression, got end of string"),
+        (None, _) => panic!("Expected rest of expression, got end of string"),
     }
 }
 
 pub fn parse_low(math: String) -> (Expression, String) {
     match pull(&math) {
+        (Some('('), _) => parse_paren(math),
+        (Some(first), _) if first.is_digit(10) => parse_num(math),
+        (Some(first), _) if first.is_alphabetic() => parse_var(math),
+        (Some(first), _) => panic!("Unexpected character {}", first),
+        (None, _) => panic!("Unexpected end of string"),
+    }
+}
+
+pub fn parse_paren(math: String) -> (Expression, String) {
+    match pull(&math) {
         (Some('('), Some(rest)) => {
             let (expr, math) = parse_expression(rest);
             match pull(&math) {
-                (Some(')'), Some(rest)) => (expr, rest),
+                (Some(')'), rest) => (expr, opt_to_string(rest)),
                 (Some(first), _) => panic!("Expected ')' got {}", first),
-                _ => panic!("Expected ')' got end of string"),
+                (None, _) => panic!("Expected ')'  got end of string"),
             }
         }
-        (Some(first), _) if first.is_digit(10) => parse_num(math),
+        _ => panic!("Unexpected character or end of string"),
+    }
+}
+
+pub fn parse_var(math: String) -> (Expression, String) {
+    match pull(&math) {
         (Some(first), rest) if first.is_alphabetic() => (
-            Expression::Number(Number::Variable(first.to_string())),
-            match rest {
-                Some(string) => string,
-                None => "".to_string(),
-            },
+            Expression::Number(Number::Variable(first)),
+            opt_to_string(rest),
         ),
-        (Some(first), Some(_)) => panic!("Unexpected character {}", first),
-        (_, _) => panic!("Unexpected end of string"),
+        (_, _) => panic!("Unexpected character"),
     }
 }
 
