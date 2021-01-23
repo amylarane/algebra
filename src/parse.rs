@@ -11,19 +11,17 @@ pub fn parse_statement(math: String) -> Statement {
     let (left, math) = parse_expression(math);
 
     let (right, math) = match pull(&math) {
-        (Some(first), Some(rest)) => match first {
-            '=' => parse_expression(rest),
+        (Some(first), rest) => match first {
+            '=' => parse_expression(match rest {
+                Some(rest) => rest,
+                None => panic!("Expected right side of equation got end of string")
+            }),
             c => panic!("Expected '=' found {}", c),
         },
-        (Some(first), None) => match first {
-            '=' => panic!("Expected right side of equation, got end of string"),
-            _ => panic!("Got unexpected character"),
-        },
-        _ => panic!("unexpected end of string"),
+        (None, _) => panic!("unexpected end of string"),
     };
 
     if math.len() != 0 {
-        println!("{}", math);
         panic!("Expected end of string")
     }
 
@@ -46,8 +44,8 @@ pub fn parse_binary(math: String, operations: &OpTable) -> (Expression, String) 
                         ),
                         math,
                     )
-                }
-                _ => (left, math),
+                },
+                (_,_) => (left, math),
             }
         }
         None => parse_unary(math),
@@ -115,7 +113,8 @@ pub fn parse_paren(math: String) -> (Expression, String) {
                 (None, _) => panic!("Expected ')'  got end of string"),
             }
         }
-        _ => panic!("Unexpected character or end of string"),
+        (Some(first), _) => panic!("Expected opening parenthesis, got {}", first),
+        (None,_) => panic!("Expected parenthesis, got end of string"),
     }
 }
 
@@ -125,7 +124,8 @@ pub fn parse_var(math: String) -> (Expression, String) {
             Expression::Number(Number::Variable(first)),
             opt_to_string(rest),
         ),
-        (_, _) => panic!("Unexpected character"),
+        (Some(first), _) => panic!("expected a alphanumeric character, got {}", first),
+        (None, _) => panic!("Unexpected character"),
     }
 }
 
