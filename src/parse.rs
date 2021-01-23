@@ -1,60 +1,10 @@
-#[derive(Debug)]
-pub enum Number {
-    Constant(u64),
-    Variable(char),
-}
+use crate::utils::*;
+use crate::ast::*;
 
-#[derive(Debug, Clone)]
-pub enum Operation {
-    Addition,
-    Subtraction,
-    Multiplication,
-    Division,
-    Exponentiation,
-}
-
-#[derive(Debug)]
-pub enum Expression {
-    Number(Number),
-    Operation(Operation, Box<Expression>, Box<Expression>),
-    Unary(Operation, Box<Expression>),
-}
-
-#[derive(Debug)]
-pub struct Statement {
-    left: Expression,
-    right: Expression,
-}
-
-fn opt_to_string(string: Option<String>) -> String {
-    match string {
-        Some(string) => string,
-        None => "".to_string(),
-    }
-}
-
-fn pull(s: &String) -> (Option<char>, Option<String>) {
-    let s = s.trim().chars().collect::<String>();
-    (
-        s.chars().next(),
-        match s.len() {
-            0 | 1 => None,
-            _ => Some(get_rest(&s, 1)),
-        },
-    )
-}
-
-fn get_at(s: &String, index: usize) -> Option<char> {
-    s.chars().skip(index).next()
-}
-
-fn get_rest(s: &String, index: usize) -> String {
-    s.chars()
-        .skip(index)
-        .collect::<String>()
-        .trim()
-        .chars()
-        .collect()
+use std::collections::HashMap;
+pub struct OpTable {
+    operations: HashMap<char, Operation>,
+    next_level: Option<Box<OpTable>>,
 }
 
 pub fn parse_statement(math: String) -> Statement {
@@ -73,16 +23,11 @@ pub fn parse_statement(math: String) -> Statement {
     };
 
     if math.len() != 0 {
+        println!("{}", math);
         panic!("Expected end of string")
     }
 
     Statement { left, right }
-}
-
-use std::collections::HashMap;
-pub struct OpTable {
-    operations: HashMap<char, Operation>,
-    next_level: Option<Box<OpTable>>,
 }
 
 pub fn parse_binary(math: String, operations: &OpTable) -> (Expression, String) {
@@ -113,28 +58,27 @@ pub fn parse_expression(math: String) -> (Expression, String) {
     parse_binary(
         math,
         &OpTable {
-            operations: as_hash_map(&[('+', Operation::Addition), ('-', Operation::Subtraction)]),
+            operations: array_to_hash_map(&[('+', Operation::Addition), ('-', Operation::Subtraction)]),
             next_level: Some(box OpTable {
-                operations: as_hash_map(&[
+                operations: array_to_hash_map(&[
                     ('*', Operation::Multiplication),
                     ('/', Operation::Division),
                 ]),
                 next_level: Some(box OpTable {
-                    operations: as_hash_map(&[('^', Operation::Exponentiation)]),
-                    next_level: None,
+                    operations: array_to_hash_map(&[('^', Operation::Exponentiation)]),
+                    next_level: Some(box OpTable {
+                        operations: array_to_hash_map(&[]),
+                        next_level: None
+                    })
                 }),
             }),
         },
     )
 }
 
-pub fn as_hash_map<T: Clone + Eq + std::hash::Hash, R: Clone>(array: &[(T, R)]) -> HashMap<T, R> {
-    array.iter().cloned().collect()
-}
-
 pub fn parse_unary(math: String) -> (Expression, String) {
     let ops = &OpTable {
-        operations: as_hash_map(&[('+', Operation::Addition), ('-', Operation::Subtraction)]),
+        operations: array_to_hash_map(&[('+', Operation::Addition), ('-', Operation::Subtraction)]),
         next_level: None,
     };
 
