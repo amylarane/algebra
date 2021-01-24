@@ -6,9 +6,9 @@ extern crate text_io;
 
 use std::io::{self, Write};
 
+mod ast;
 mod parse;
 mod utils;
-mod ast;
 
 fn main() {
     print!("Input Statement: ");

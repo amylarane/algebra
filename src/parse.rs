@@ -1,5 +1,5 @@
-use crate::utils::*;
 use crate::ast::*;
+use crate::utils::*;
 
 use std::collections::HashMap;
 pub struct OpTable {
@@ -14,7 +14,7 @@ pub fn parse_statement(math: String) -> Statement {
         (Some(first), rest) => match first {
             '=' => parse_expression(match rest {
                 Some(rest) => rest,
-                None => panic!("Expected right side of equation got end of string")
+                None => panic!("Expected right side of equation got end of string"),
             }),
             c => panic!("Expected '=' found {}", c),
         },
@@ -44,8 +44,8 @@ pub fn parse_binary(math: String, operations: &OpTable) -> (Expression, String) 
                         ),
                         math,
                     )
-                },
-                (_,_) => (left, math),
+                }
+                (_, _) => (left, math),
             }
         }
         None => parse_unary(math),
@@ -56,7 +56,10 @@ pub fn parse_expression(math: String) -> (Expression, String) {
     parse_binary(
         math,
         &OpTable {
-            operations: array_to_hash_map(&[('+', Operation::Addition), ('-', Operation::Subtraction)]),
+            operations: array_to_hash_map(&[
+                ('+', Operation::Addition),
+                ('-', Operation::Subtraction),
+            ]),
             next_level: Some(box OpTable {
                 operations: array_to_hash_map(&[
                     ('*', Operation::Multiplication),
@@ -66,8 +69,8 @@ pub fn parse_expression(math: String) -> (Expression, String) {
                     operations: array_to_hash_map(&[('^', Operation::Exponentiation)]),
                     next_level: Some(box OpTable {
                         operations: array_to_hash_map(&[]),
-                        next_level: None
-                    })
+                        next_level: None,
+                    }),
                 }),
             }),
         },
@@ -114,7 +117,7 @@ pub fn parse_paren(math: String) -> (Expression, String) {
             }
         }
         (Some(first), _) => panic!("Expected opening parenthesis, got {}", first),
-        (None,_) => panic!("Expected parenthesis, got end of string"),
+        (None, _) => panic!("Expected parenthesis, got end of string"),
     }
 }
 

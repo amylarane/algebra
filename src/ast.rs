@@ -27,21 +27,26 @@ impl Expression {
 
             Expression::Operation(op, left, right) => {
                 match Expression::Operation(op, box left.optimize(), box right.optimize()) {
-                    Expression::Operation(op, box Expression::Number(Number::Constant(x)), box Expression::Number(Number::Constant(y))) => {
-                        match op {
-                            Operation::Addition => Expression::Number(Number::Constant(x+y)),
-                            Operation::Subtraction => Expression::Number(Number::Constant(x-y)),
-                            Operation::Multiplication => Expression::Number(Number::Constant(x * y)),
-                            Operation::Division => Expression::Operation(Operation::Division,
-                                box Expression::Number(Number::Constant(x)),
-                                box Expression::Number(Number::Constant(y))
-                            ),
-                            Operation::Exponentiation => Expression::Number(Number::Constant(x.pow(y as u32))),
+                    Expression::Operation(
+                        op,
+                        box Expression::Number(Number::Constant(x)),
+                        box Expression::Number(Number::Constant(y)),
+                    ) => match op {
+                        Operation::Addition => Expression::Number(Number::Constant(x + y)),
+                        Operation::Subtraction => Expression::Number(Number::Constant(x - y)),
+                        Operation::Multiplication => Expression::Number(Number::Constant(x * y)),
+                        Operation::Division => Expression::Operation(
+                            Operation::Division,
+                            box Expression::Number(Number::Constant(x)),
+                            box Expression::Number(Number::Constant(y)),
+                        ),
+                        Operation::Exponentiation => {
+                            Expression::Number(Number::Constant(x.pow(y as u32)))
                         }
                     },
                     expr => expr,
                 }
-            },
+            }
             Expression::Unary(op, expr) => Expression::Unary(op, box expr.optimize()),
         }
     }
@@ -55,7 +60,9 @@ pub struct Statement {
 
 impl Statement {
     pub fn optimize(self: Self) -> Self {
-        Statement { left: self.left.optimize(), right: self.right.optimize() }
+        Statement {
+            left: self.left.optimize(),
+            right: self.right.optimize(),
+        }
     }
 }
-

@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-pub fn array_to_hash_map<T: Clone + Eq + std::hash::Hash, R: Clone>(array: &[(T, R)]) -> HashMap<T, R> {
+pub fn array_to_hash_map<T: Clone + Eq + std::hash::Hash, R: Clone>(
+    array: &[(T, R)],
+) -> HashMap<T, R> {
     array.iter().cloned().collect()
 }
 
