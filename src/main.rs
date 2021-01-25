@@ -17,5 +17,5 @@ fn main() {
     let s: String;
     scan!("{}\n", s);
 
-    println!("{:?}", parse::parse_statement(s).optimize());
+    println!("{}", parse::parse_statement(s).optimize().to_string());
 }
